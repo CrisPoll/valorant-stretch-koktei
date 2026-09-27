@@ -3,11 +3,14 @@
 import ctypes
 from ctypes import wintypes
 import json
+import threading
 import tkinter as tk
 from tkinter import messagebox, scrolledtext, simpledialog, ttk
 
 from app import SETTINGS_FILE, StretchApp, format_ratio
+from auto_mode import prepare_auto_mode
 from display import current_mode, list_modes, mode_text
+from riot import game_running
 
 
 BG = "#100F1B"
@@ -179,6 +182,8 @@ class ModernStretchApp(StretchApp):
         chooser_row.pack(fill="x", pady=(10, 0))
         self.label(chooser_row, variable=self.summary, color=MUTED, size=10).pack(side="left")
         self.button(chooser_row, "Ver resoluciones de Windows", self.show_available_modes).pack(side="right")
+        self.auto_button = self.button(chooser_row, "Crear 4:3 automático", self.create_auto_mode)
+        self.auto_button.pack(side="right", padx=(0, 8))
 
         controls = tk.Frame(page, bg=BG)
         controls.pack(fill="x", pady=(14, 0))
@@ -189,6 +194,45 @@ class ModernStretchApp(StretchApp):
         self.back_button = self.button(controls, "F9  Volver", self.unstretch, state="disabled")
         self.back_button.pack(side="left", padx=(9, 0))
         self.button(controls, "⟳  Restaurar", self.restore_all).pack(side="left", padx=(9, 0))
+
+    def create_auto_mode(self):
+        if self.worker and self.worker.is_alive():
+            messagebox.showinfo("VALORANT Stretch", "Termina la sesión antes de preparar otra resolución.",
+                                parent=self.root)
+            return
+        if game_running():
+            messagebox.showinfo("VALORANT Stretch", "Cierra VALORANT antes de crear la resolución.",
+                                parent=self.root)
+            return
+        self.auto_button.configure(state="disabled")
+        self.play_button.configure(state="disabled")
+        self.status_label.set("Buscando una resolución 4:3 compatible...")
+
+        def work():
+            try:
+                result = prepare_auto_mode(self.post)
+                self.root.after(0, lambda: self.finish_auto_mode(result))
+            except Exception as error:
+                message = str(error)
+                self.root.after(0, lambda: self.finish_auto_mode(error=message))
+
+        threading.Thread(target=work, daemon=True).start()
+
+    def finish_auto_mode(self, result=None, error=None):
+        self.auto_button.configure(state="normal")
+        self.play_button.configure(state="normal")
+        if error:
+            self.status_label.set("No se encontró un modo 4:3 compatible")
+            messagebox.showerror("No se pudo crear la resolución", error, parent=self.root)
+            return
+        width, height, output_width, output_height, hz = result
+        for name, value in (("source_width", width), ("source_height", height),
+                            ("output_width", output_width), ("output_height", output_height),
+                            ("hz", hz)):
+            self.vars[name].set(str(value))
+        self.save_settings()
+        self.post(f"Listo: Juego {width}×{height} (4:3) → Pantalla "
+                  f"{output_width}×{output_height} · {hz} Hz. Ya puedes abrir VALORANT.")
 
     def show_available_modes(self):
         modes = sorted({(mode.width, mode.height, mode.frequency)

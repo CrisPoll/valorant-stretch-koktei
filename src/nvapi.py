@@ -95,6 +95,8 @@ class NvidiaApi:
                                     ctypes.POINTER(CustomDisplay))
         self.try_custom = api(0x1F7DB630, ctypes.POINTER(ctypes.c_uint), ctypes.c_uint,
                               ctypes.POINTER(CustomDisplay))
+        self.delete_custom = api(0x552E5B9B, ctypes.POINTER(ctypes.c_uint), ctypes.c_uint,
+                                 ctypes.POINTER(CustomDisplay))
         self.save_custom = api(0x49882876, ctypes.POINTER(ctypes.c_uint), ctypes.c_uint,
                                ctypes.c_uint, ctypes.c_uint)
         self.revert_custom = api(0xCBBD40F0, ctypes.POINTER(ctypes.c_uint), ctypes.c_uint)
@@ -128,6 +130,23 @@ class NvidiaApi:
             self.check(code, "Enumerar resoluciones NVIDIA")
             yield mode
             index += 1
+
+    def find_custom_mode(self, source_w: int, source_h: int):
+        identifier = self.display_id()
+        return next((mode for mode in self.custom_modes(identifier)
+                     if (mode.width, mode.height) == (source_w, source_h)), None)
+
+    def delete_created_mode(self, source_w: int, source_h: int,
+                            output_w: int, output_h: int, hz: int) -> None:
+        """Remove only an exact mode created by this run but unavailable in Windows."""
+        identifier = self.display_id()
+        mode = next((item for item in self.custom_modes(identifier)
+                     if (item.width, item.height, item.timing.hvisible,
+                         item.timing.vvisible) == (source_w, source_h, output_w, output_h)
+                     and abs(item.timing.etc.rrx1k / 1000 - hz) < 0.6), None)
+        if mode is not None:
+            self.check(self.delete_custom(ctypes.byref(identifier), 1, ctypes.byref(mode)),
+                       "Retirar resolución no disponible")
 
     def ensure_mode(self, source_w: int, source_h: int,
                     output_w: int, output_h: int, hz: int,
