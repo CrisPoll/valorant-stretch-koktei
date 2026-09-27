@@ -1,6 +1,7 @@
 """Simple Windows UI for custom VALORANT stretched resolutions."""
 
 import json
+import math
 import os
 from pathlib import Path
 import queue
@@ -24,12 +25,27 @@ MUTED = "#AEBBD0"
 ACCENT = "#5BE1E8"
 
 
+def format_ratio(width: int, height: int) -> str:
+    """Show familiar screen formats without unwieldy fractions."""
+    value = width / height
+    for label, ratio in (("4:3", 4 / 3), ("16:9", 16 / 9),
+                         ("16:10", 16 / 10), ("5:4", 5 / 4),
+                         ("21:9", 21 / 9)):
+        if abs(value - ratio) < 0.015:
+            return label
+    divisor = math.gcd(width, height)
+    short_width, short_height = width // divisor, height // divisor
+    if max(short_width, short_height) <= 30:
+        return f"{short_width}:{short_height}"
+    return f"personalizado ({value:.2f}:1)"
+
+
 class StretchApp:
     def __init__(self, root: tk.Tk):
         self.root = root
         self.root.title("VALORANT Stretch · koktei")
-        self.root.geometry("850x640")
-        self.root.minsize(760, 590)
+        self.root.geometry("850x720")
+        self.root.minsize(760, 700)
         self.root.configure(bg=BG)
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
         self.initial_mode = current_mode()
@@ -55,6 +71,9 @@ class StretchApp:
         self.monitor_label = tk.StringVar()
         self.monitor_summary = tk.StringVar(value="Buscando monitor...")
         self.ratio_label = tk.StringVar()
+        self.game_format = tk.StringVar(value="4:3")
+        self.output_format = tk.StringVar(value="16:9")
+        self.effect_label = tk.StringVar()
         self.status_label = tk.StringVar(value="Listo para jugar")
         self.build_ui()
         self.refresh_monitors()
@@ -118,25 +137,48 @@ class StretchApp:
         heading.pack(fill="x", pady=(0, 9))
         ttk.Label(heading, text="Tu resolución", style="Section.TLabel").pack(side="left")
         ttk.Button(heading, text="Usar modo probado", command=self.use_verified_mode).pack(side="right")
-        for title, width, height in (
-            ("Imagen del juego", "source_width", "source_height"),
-            ("Salida del monitor", "output_width", "output_height"),
-        ):
-            row = ttk.Frame(resolution, style="Card.TFrame")
-            row.pack(fill="x", pady=3)
-            ttk.Label(row, text=title, style="Card.TLabel", width=21).pack(side="left")
-            self.entry(row, width)
-            ttk.Label(row, text="×", style="Card.TLabel").pack(side="left", padx=8)
-            self.entry(row, height)
-            ttk.Label(row, text="píxeles", style="Muted.TLabel").pack(side="left", padx=10)
-        row = ttk.Frame(resolution, style="Card.TFrame")
-        row.pack(fill="x", pady=(4, 0))
-        ttk.Label(row, text="Frecuencia", style="Card.TLabel", width=21).pack(side="left")
+        settings_content = ttk.Frame(resolution, style="Card.TFrame")
+        settings_content.pack(fill="x")
+        form = ttk.Frame(settings_content, style="Card.TFrame")
+        form.pack(side="left", anchor="n", padx=(0, 20))
+        row = ttk.Frame(form, style="Card.TFrame")
+        row.pack(fill="x", pady=4)
+        ttk.Label(row, text="Juego", style="Card.TLabel", width=10).pack(side="left")
+        self.entry(row, "source_width")
+        ttk.Label(row, text="×", style="Card.TLabel").pack(side="left", padx=6)
+        self.entry(row, "source_height")
+        self.format_box = ttk.Combobox(row, textvariable=self.game_format,
+                                       values=("4:3", "16:9", "Personalizado"),
+                                       state="readonly", width=13)
+        self.format_box.pack(side="left", padx=(9, 0))
+        self.format_box.bind("<<ComboboxSelected>>", self.choose_game_format)
+
+        row = ttk.Frame(form, style="Card.TFrame")
+        row.pack(fill="x", pady=4)
+        ttk.Label(row, text="Pantalla", style="Card.TLabel", width=10).pack(side="left")
+        self.entry(row, "output_width")
+        ttk.Label(row, text="×", style="Card.TLabel").pack(side="left", padx=6)
+        self.entry(row, "output_height")
+        ttk.Label(row, textvariable=self.output_format, style="Accent.TLabel").pack(side="left", padx=(12, 0))
+
+        row = ttk.Frame(form, style="Card.TFrame")
+        row.pack(fill="x", pady=(5, 0))
+        ttk.Label(row, text="Frecuencia", style="Card.TLabel", width=10).pack(side="left")
         self.entry(row, "hz")
-        ttk.Label(row, text="Hz", style="Muted.TLabel").pack(side="left", padx=10)
-        ttk.Label(resolution, textvariable=self.ratio_label, style="Accent.TLabel").pack(anchor="w", pady=(10, 0))
-        ttk.Label(resolution, text="La primera resolución se renderiza; la segunda es la señal que recibe el monitor.",
-                  style="Muted.TLabel").pack(anchor="w", pady=(5, 0))
+        ttk.Label(row, text="Hz", style="Muted.TLabel").pack(side="left", padx=(8, 0))
+
+        explanation = ttk.Frame(settings_content, style="Card.TFrame")
+        explanation.pack(side="left", fill="both", expand=True, anchor="n")
+        ttk.Label(explanation, text="¿Qué significa cada valor?", style="Section.TLabel").pack(anchor="w")
+        ttk.Label(explanation, text="Juego: el formato de la imagen. Elige 4:3 si buscas el efecto estirado.",
+                  style="Muted.TLabel", wraplength=320, justify="left").pack(anchor="w", pady=(7, 0))
+        ttk.Label(explanation, text="Pantalla: tamaño final que recibe tu monitor. Si es más ancho, la imagen se estira.",
+                  style="Muted.TLabel", wraplength=320, justify="left").pack(anchor="w", pady=(5, 0))
+        ttk.Label(explanation, text="Hz: frecuencia de tu monitor. Usa la que tienes configurada en Windows.",
+                  style="Muted.TLabel", wraplength=320, justify="left").pack(anchor="w", pady=(5, 0))
+
+        ttk.Label(resolution, textvariable=self.ratio_label, style="Accent.TLabel").pack(anchor="w", pady=(12, 0))
+        ttk.Label(resolution, textvariable=self.effect_label, style="Muted.TLabel").pack(anchor="w", pady=(4, 0))
 
         flow = ttk.Frame(frame, style="Card.TFrame", padding=16)
         flow.pack(fill="x", pady=(12, 0))
@@ -197,6 +239,19 @@ class StretchApp:
             self.vars[name].set(str(value))
         self.post("Modo probado: 1200×900 → 1600×900 a 240 Hz.")
 
+    def choose_game_format(self, *_):
+        selected = self.game_format.get()
+        if selected == "Personalizado":
+            return
+        try:
+            height = int(self.vars["source_height"].get())
+            if height <= 0:
+                raise ValueError
+            numerator, denominator = (4, 3) if selected == "4:3" else (16, 9)
+            self.vars["source_width"].set(str(round(height * numerator / denominator)))
+        except ValueError:
+            self.ratio_label.set("Escribe primero una altura válida para el juego.")
+
     def toggle_advanced(self):
         if self.advanced_open:
             self.advanced.pack_forget()
@@ -223,7 +278,7 @@ class StretchApp:
 
     def resize_for_panel(self):
         width = max(self.root.winfo_width(), 760)
-        height = 780 if self.advanced_open or self.details_open else 640
+        height = 860 if self.advanced_open or self.details_open else 720
         self.root.geometry(f"{width}x{height}")
 
     def browse_client(self):
@@ -272,13 +327,24 @@ class StretchApp:
             sh = int(self.vars["source_height"].get())
             ow = int(self.vars["output_width"].get())
             oh = int(self.vars["output_height"].get())
+            if min(sw, sh, ow, oh) <= 0:
+                raise ValueError
             multiplier = (ow / sw) / (oh / sh)
-            self.ratio_label.set(
-                f"Juego {sw / sh:.2f}:1 → salida {ow / oh:.2f}:1  ·  "
-                f"ancho relativo de personajes: {multiplier:.2f}×"
-            )
+            game = format_ratio(sw, sh)
+            output = format_ratio(ow, oh)
+            self.game_format.set(game if game in ("4:3", "16:9") else "Personalizado")
+            self.output_format.set(output)
+            self.ratio_label.set(f"Juego {game}  →  Pantalla {output}")
+            percent = round(abs(multiplier - 1) * 100)
+            if percent < 2:
+                self.effect_label.set("Ambas imágenes tienen casi el mismo formato: apenas habrá estirado.")
+            elif multiplier > 1:
+                self.effect_label.set(f"Efecto estimado: la imagen se ensancha un {percent} % al pulsar F8.")
+            else:
+                self.effect_label.set(f"Efecto estimado: la imagen se estrecha un {percent} % al pulsar F8.")
         except (ValueError, ZeroDivisionError):
-            self.ratio_label.set("Introduce números válidos para ver el estirado.")
+            self.ratio_label.set("Introduce números válidos para ver el formato.")
+            self.effect_label.set("")
 
     def get_settings(self) -> Settings:
         settings = Settings(

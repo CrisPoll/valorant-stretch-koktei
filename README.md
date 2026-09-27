@@ -10,7 +10,9 @@
 4. Entra al campo de tiro o a una partida. Cuando puedas moverte, pulsa **F8** o el botón **Estirar**.
 5. **F9** vuelve al escritorio original. Al cerrar VALORANT, la app restaura automáticamente la pantalla y el monitor.
 
-El campo **imagen del juego** controla los píxeles que procesa Windows. **Salida de vídeo** controla la señal enviada al monitor. Para ensanchar los personajes, la relación ancho/alto de la salida debe ser mayor que la de la imagen. Por ejemplo, `1200×900` es 4:3 y `1600×900` es 16:9; el ancho relativo aumenta `1,33×`. Poner `1600×900` en ambos campos mantiene las proporciones normales.
+Para ensanchar la imagen, el formato de **Pantalla** debe ser más ancho que el de **Juego**. Por ejemplo, `1200×900` es 4:3 y `1600×900` es 16:9; el ancho relativo aumenta `1,33×`. Poner `1600×900` en ambos campos mantiene las proporciones normales.
+
+En la ventana, **Juego** es la resolución de la imagen que se estira. El menú de al lado permite elegir **4:3**, **16:9** o escribir una resolución **personalizada**. **Pantalla** es la resolución final que recibe el monitor; la app indica su formato automáticamente. **Frecuencia** son los Hz del monitor configurados en Windows. La app muestra el formato de ambos lados y una estimación del estirado antes de iniciar.
 
 La aplicación acepta valores personalizados, pero el monitor y el controlador deben admitir la combinación elegida. NVIDIA prueba la resolución antes de guardarla y Windows la comprueba antes de aplicarla. Los cambios del juego pueden alterar el efecto visual; verifica siempre el resultado dentro de una partida.
 

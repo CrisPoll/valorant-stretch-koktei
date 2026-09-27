@@ -29,6 +29,17 @@ def self_test(path: Path) -> None:
                 }
                 for mode in nvidia.custom_modes(identifier)
             ]
+        import tkinter as tk
+        from app import StretchApp
+
+        root = tk.Tk()
+        root.withdraw()
+        try:
+            app = StretchApp(root)
+            root.update_idletasks()
+            result["gui_ok"] = bool(app.play_button.winfo_exists())
+        finally:
+            root.destroy()
         result["ok"] = True
     except Exception as error:
         result["ok"] = False
