@@ -9,7 +9,7 @@ import time
 from display import apply_mode, available_mode, current_mode, mode_text
 from monitor import MonitorLease
 from nvapi import NvidiaApi
-from riot import game_running, launch_client, prepare_config
+from riot import GameFlowWatcher, game_running, launch_client, prepare_config
 
 
 user32 = ctypes.WinDLL("user32", use_last_error=True)
@@ -104,23 +104,42 @@ class GameSession:
                 raise RuntimeError("VALORANT no se abrió en 15 minutos.")
 
             self.running = True
-            self.report("Entra a una partida. Pulsa F8 para estirar o usa el botón de la app.")
+            self.report("Entra a una partida. La app estirará al cargar el mapa; F8 también permite aplicarlo.")
             was_f8 = False
             was_f9 = False
             next_process_check = 0.0
+            next_flow_check = 0.0
+            stretch_at = None
+            flow = GameFlowWatcher()
             while not self.stop_event.is_set():
-                if time.monotonic() >= next_process_check:
+                now = time.monotonic()
+                if now >= next_process_check:
                     if not game_running():
                         self.report("VALORANT cerrado.")
                         break
-                    next_process_check = time.monotonic() + 2
+                    next_process_check = now + 2
+                if now >= next_flow_check:
+                    for state in flow.poll():
+                        if state in ("TransitionToMainMenu", "MainMenu", "TransitionToPregame", "Pregame"):
+                            stretch_at = None
+                            if stretched:
+                                apply_mode(original)
+                                stretched = False
+                                self.report("Pantalla normal entre partidas. El estirado volverá al entrar al juego.")
+                        elif state == "InGame":
+                            stretch_at = now + 3
+                            self.report("Partida cargada. Aplicando estirado en unos segundos...")
+                    next_flow_check = now + 0.5
                 f8 = key_down(0x77)
                 f9 = key_down(0x78)
-                toggle = (f8 and not was_f8) or self.toggle_event.is_set()
+                toggle = (f8 and not was_f8) or self.toggle_event.is_set() or (
+                    stretch_at is not None and now >= stretch_at
+                )
                 restore = (f9 and not was_f9) or self.restore_event.is_set()
                 self.toggle_event.clear()
                 self.restore_event.clear()
                 if toggle:
+                    stretch_at = None
                     # VALORANT may rebuild its viewport after Alt+Tab or between
                     # matches while Windows still reports the custom mode. Cycle
                     # through the desktop mode so the game receives a new display
@@ -140,10 +159,12 @@ class GameSession:
                         f"→ salida {settings.output_width}×{settings.output_height} "
                         f"a {settings.hz} Hz. Puedes repetir F8 si reaparecen bordes negros."
                     )
-                if restore and stretched:
-                    apply_mode(original)
-                    stretched = False
-                    self.report(f"Restaurado: {mode_text(original)}")
+                if restore:
+                    stretch_at = None
+                    if stretched:
+                        apply_mode(original)
+                        stretched = False
+                        self.report(f"Restaurado: {mode_text(original)}")
                 was_f8, was_f9 = f8, f9
                 time.sleep(0.08)
         finally:

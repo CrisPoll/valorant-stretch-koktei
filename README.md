@@ -7,12 +7,12 @@
 1. Descarga `ValorantStretchKoktei.exe` y ejecútalo.
 2. Escribe la **imagen del juego**, la **salida de vídeo** y los **Hz** que quieras. La app empieza con el modo comprobado `1200×900 → 1600×900 @ 240 Hz`.
 3. Pulsa **Abrir VALORANT** y acepta el aviso de Windows para preparar temporalmente el monitor.
-4. Entra al campo de tiro o a una partida. Cuando puedas moverte, pulsa **F8** o el botón **Estirar**.
-5. Si aparecen bordes negros después de Alt+Tab o al entrar en otra partida, pulsa **F8** de nuevo para reaplicar el estirado. **F9** vuelve al escritorio original. Al cerrar VALORANT, la app restaura automáticamente la pantalla y el monitor.
+4. Entra al campo de tiro o a una partida. La app detecta cuándo el mapa termina de cargar y aplica el estirado automáticamente. **F8** permite reaplicarlo manualmente si hace falta.
+5. Al terminar la partida, la app vuelve a la resolución normal antes de la siguiente selección de agente. Vuelve a estirar cuando cargue la nueva partida. **F9** restaura el escritorio manualmente. Al cerrar VALORANT, la app restaura la pantalla y el monitor.
 
 Para ensanchar la imagen, el formato de **Pantalla** debe ser más ancho que el de **Juego**. Por ejemplo, `1200×900` es 4:3 y `1600×900` es 16:9; el ancho relativo aumenta `1,33×`. Poner `1600×900` en ambos campos mantiene las proporciones normales.
 
-Si tu escritorio está en `1920×1080`, al pulsar F8 el juego pasa a una imagen de `1200×900` (4:3) que se estira hasta la salida del monitor de `1600×900` (16:9). **1600×900 no es una resolución 4:3**: el efecto 4:3 viene de la imagen del juego. Windows puede mostrar la resolución de origen `1200×900` mientras el monitor recibe la salida `1600×900`.
+Si tu escritorio está en `1920×1080`, al estirar el juego pasa a una imagen de `1200×900` (4:3) que se estira hasta la salida del monitor de `1600×900` (16:9). **1600×900 no es una resolución 4:3**: el efecto 4:3 viene de la imagen del juego. Windows puede mostrar la resolución de origen `1200×900` mientras el monitor recibe la salida `1600×900`.
 
 En el **Simulador**, **Juego** es la resolución de la imagen que se estira y **Pantalla** es la salida final que recibe el monitor. Los cinco valores (ancho y alto del juego, ancho y alto de la salida y Hz) son editables; los formatos 4:3 y 16:9 se calculan automáticamente. La comparación visual cambia al editar cualquiera de las resoluciones. **Perfiles** permite guardar y recuperar combinaciones personales. **Configuración** contiene el monitor y las rutas del juego; **Detalles** muestra la actividad.
 

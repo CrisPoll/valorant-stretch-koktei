@@ -1,0 +1,30 @@
+name: Publicar ejecutable
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Compilar aplicación
+        shell: pwsh
+        run: |
+          python -m pip install -r requirements-build.txt
+          python -m PyInstaller --noconfirm --clean --onefile --windowed --name ValorantStretchKoktei --version-file version_info.txt --add-data 'assets\monitor_helper.ps1;assets' src\main.py
+      - name: Publicar descarga
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $version = $env:GITHUB_REF_NAME
+          gh release create $version "dist/ValorantStretchKoktei.exe#ValorantStretchKoktei-$version.exe" --title "VALORANT Stretch $version" --notes "Corrección del cambio entre partidas: restaura la resolución al volver al menú y aplica el estirado al cargar el siguiente mapa. F8 permite reaplicarlo manualmente."

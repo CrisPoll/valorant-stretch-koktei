@@ -11,6 +11,39 @@ import subprocess
 
 
 GAME_EXE = "VALORANT-Win64-Shipping.exe"
+FLOW_MARKER = "Broadcasting state changed to "
+
+
+class GameFlowWatcher:
+    """Read only new game-state lines from VALORANT's local log."""
+
+    def __init__(self):
+        self.path = Path(os.environ["LOCALAPPDATA"]) / "VALORANT" / "Saved" / "Logs" / "ShooterGame.log"
+        self.offset = self.path.stat().st_size if self.path.is_file() else 0
+        self.pending = b""
+
+    def poll(self) -> list[str]:
+        try:
+            size = self.path.stat().st_size
+            if size < self.offset:
+                self.offset = 0  # VALORANT rotated the log.
+                self.pending = b""
+            with self.path.open("rb") as log:
+                log.seek(self.offset)
+                chunk = log.read()
+                self.offset = log.tell()
+        except OSError:
+            return []
+        if not chunk:
+            return []
+        lines = (self.pending + chunk).split(b"\n")
+        self.pending = lines.pop()
+        states = []
+        for line in lines:
+            text = line.decode("utf-8", errors="replace")
+            if FLOW_MARKER in text:
+                states.append(text.split(FLOW_MARKER, 1)[1].strip())
+        return states
 
 
 def game_running() -> bool:
