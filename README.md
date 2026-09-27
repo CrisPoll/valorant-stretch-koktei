@@ -12,6 +12,8 @@
 
 Para ensanchar la imagen, el formato de **Pantalla** debe ser más ancho que el de **Juego**. Por ejemplo, `1200×900` es 4:3 y `1600×900` es 16:9; el ancho relativo aumenta `1,33×`. Poner `1600×900` en ambos campos mantiene las proporciones normales.
 
+Si tu escritorio está en `1920×1080`, al pulsar F8 el juego pasa a una imagen de `1200×900` (4:3) que se estira hasta la salida del monitor de `1600×900` (16:9). **1600×900 no es una resolución 4:3**: el efecto 4:3 viene de la imagen del juego. Windows puede mostrar la resolución de origen `1200×900` mientras el monitor recibe la salida `1600×900`.
+
 En la ventana, **Juego** es la resolución de la imagen que se estira. El menú de al lado permite elegir **4:3**, **16:9** o escribir una resolución **personalizada**. **Pantalla** es la resolución final que recibe el monitor; la app indica su formato automáticamente. **Frecuencia** son los Hz del monitor configurados en Windows. La app muestra el formato de ambos lados y una estimación del estirado antes de iniciar.
 
 La aplicación acepta valores personalizados, pero el monitor y el controlador deben admitir la combinación elegida. NVIDIA prueba la resolución antes de guardarla y Windows la comprueba antes de aplicarla. Los cambios del juego pueden alterar el efecto visual; verifica siempre el resultado dentro de una partida.

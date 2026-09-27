@@ -44,8 +44,8 @@ class StretchApp:
     def __init__(self, root: tk.Tk):
         self.root = root
         self.root.title("VALORANT Stretch · koktei")
-        self.root.geometry("850x720")
-        self.root.minsize(760, 700)
+        self.root.geometry("850x750")
+        self.root.minsize(760, 730)
         self.root.configure(bg=BG)
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
         self.initial_mode = current_mode()
@@ -75,6 +75,9 @@ class StretchApp:
         self.output_format = tk.StringVar(value="16:9")
         self.effect_label = tk.StringVar()
         self.target_label = tk.StringVar()
+        self.game_step = tk.StringVar()
+        self.screen_step = tk.StringVar()
+        self.guidance = tk.StringVar()
         self.status_label = tk.StringVar(value="Listo para jugar")
         self.build_ui()
         self.refresh_monitors()
@@ -137,7 +140,7 @@ class StretchApp:
         heading = ttk.Frame(resolution, style="Card.TFrame")
         heading.pack(fill="x", pady=(0, 9))
         ttk.Label(heading, text="Tu resolución", style="Section.TLabel").pack(side="left")
-        ttk.Button(heading, text="Usar modo probado", command=self.use_verified_mode).pack(side="right")
+        ttk.Button(heading, text="Modo probado: 4:3 estirado", command=self.use_verified_mode).pack(side="right")
         settings_content = ttk.Frame(resolution, style="Card.TFrame")
         settings_content.pack(fill="x")
         form = ttk.Frame(settings_content, style="Card.TFrame")
@@ -170,13 +173,14 @@ class StretchApp:
 
         explanation = ttk.Frame(settings_content, style="Card.TFrame")
         explanation.pack(side="left", fill="both", expand=True, anchor="n")
-        ttk.Label(explanation, text="Tu pantalla ahora", style="Section.TLabel").pack(anchor="w")
-        ttk.Label(explanation, text=mode_text(self.initial_mode), style="Accent.TLabel").pack(anchor="w", pady=(5, 10))
-        ttk.Label(explanation, text="Al pulsar F8", style="Section.TLabel").pack(anchor="w")
-        ttk.Label(explanation, textvariable=self.target_label, style="Accent.TLabel",
-                  wraplength=310, justify="left").pack(anchor="w", pady=(5, 0))
+        ttk.Label(explanation, text="AHORA · tu escritorio", style="Section.TLabel").pack(anchor="w")
+        ttk.Label(explanation, text=mode_text(self.initial_mode), style="Accent.TLabel").pack(anchor="w", pady=(4, 10))
+        ttk.Label(explanation, text="AL PULSAR F8", style="Section.TLabel").pack(anchor="w")
+        ttk.Label(explanation, textvariable=self.game_step, style="Accent.TLabel").pack(anchor="w", pady=(5, 0))
+        ttk.Label(explanation, textvariable=self.screen_step, style="Accent.TLabel").pack(anchor="w", pady=(3, 0))
 
         ttk.Label(resolution, textvariable=self.ratio_label, style="Accent.TLabel").pack(anchor="w", pady=(12, 0))
+        ttk.Label(resolution, textvariable=self.guidance, style="Card.TLabel").pack(anchor="w", pady=(4, 0))
         ttk.Label(resolution, textvariable=self.effect_label, style="Muted.TLabel").pack(anchor="w", pady=(4, 0))
 
         flow = ttk.Frame(frame, style="Card.TFrame", padding=16)
@@ -277,7 +281,7 @@ class StretchApp:
 
     def resize_for_panel(self):
         width = max(self.root.winfo_width(), 760)
-        height = 860 if self.advanced_open or self.details_open else 720
+        height = 890 if self.advanced_open or self.details_open else 750
         self.root.geometry(f"{width}x{height}")
 
     def browse_client(self):
@@ -335,6 +339,12 @@ class StretchApp:
             self.output_format.set(output)
             self.ratio_label.set(f"Juego {game}  →  Pantalla {output}")
             self.target_label.set(f"{sw}×{sh} ({game}) estirado a {ow}×{oh} ({output}) · {self.vars['hz'].get()} Hz")
+            self.game_step.set(f"1  Juego: {sw}×{sh} ({game})")
+            self.screen_step.set(f"2  Se estira a {ow}×{oh} ({output})")
+            if game == "4:3" and output == "16:9":
+                self.guidance.set(f"{ow}×{oh} es 16:9; el 4:3 es {sw}×{sh}.")
+            else:
+                self.guidance.set("El formato del juego se adapta al tamaño final de pantalla.")
             percent = round(abs(multiplier - 1) * 100)
             if percent < 2:
                 self.effect_label.set("Ambas imágenes tienen casi el mismo formato: apenas habrá estirado.")
@@ -346,6 +356,9 @@ class StretchApp:
             self.ratio_label.set("Introduce números válidos para ver el formato.")
             self.effect_label.set("")
             self.target_label.set("Revisa la resolución elegida.")
+            self.game_step.set("")
+            self.screen_step.set("")
+            self.guidance.set("")
 
     def get_settings(self) -> Settings:
         settings = Settings(
