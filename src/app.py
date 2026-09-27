@@ -74,10 +74,11 @@ class StretchApp:
         self.game_format = tk.StringVar(value="4:3")
         self.output_format = tk.StringVar(value="16:9")
         self.effect_label = tk.StringVar()
+        self.target_label = tk.StringVar()
         self.status_label = tk.StringVar(value="Listo para jugar")
         self.build_ui()
         self.refresh_monitors()
-        for name in ("source_width", "source_height", "output_width", "output_height"):
+        for name in ("source_width", "source_height", "output_width", "output_height", "hz"):
             self.vars[name].trace_add("write", lambda *_: self.update_ratio())
         self.update_ratio()
         self.history.append(f"Pantalla actual: {mode_text(self.initial_mode)}")
@@ -169,13 +170,11 @@ class StretchApp:
 
         explanation = ttk.Frame(settings_content, style="Card.TFrame")
         explanation.pack(side="left", fill="both", expand=True, anchor="n")
-        ttk.Label(explanation, text="¿Qué significa cada valor?", style="Section.TLabel").pack(anchor="w")
-        ttk.Label(explanation, text="Juego: el formato de la imagen. Elige 4:3 si buscas el efecto estirado.",
-                  style="Muted.TLabel", wraplength=320, justify="left").pack(anchor="w", pady=(7, 0))
-        ttk.Label(explanation, text="Pantalla: tamaño final que recibe tu monitor. Si es más ancho, la imagen se estira.",
-                  style="Muted.TLabel", wraplength=320, justify="left").pack(anchor="w", pady=(5, 0))
-        ttk.Label(explanation, text="Hz: frecuencia de tu monitor. Usa la que tienes configurada en Windows.",
-                  style="Muted.TLabel", wraplength=320, justify="left").pack(anchor="w", pady=(5, 0))
+        ttk.Label(explanation, text="Tu pantalla ahora", style="Section.TLabel").pack(anchor="w")
+        ttk.Label(explanation, text=mode_text(self.initial_mode), style="Accent.TLabel").pack(anchor="w", pady=(5, 10))
+        ttk.Label(explanation, text="Al pulsar F8", style="Section.TLabel").pack(anchor="w")
+        ttk.Label(explanation, textvariable=self.target_label, style="Accent.TLabel",
+                  wraplength=310, justify="left").pack(anchor="w", pady=(5, 0))
 
         ttk.Label(resolution, textvariable=self.ratio_label, style="Accent.TLabel").pack(anchor="w", pady=(12, 0))
         ttk.Label(resolution, textvariable=self.effect_label, style="Muted.TLabel").pack(anchor="w", pady=(4, 0))
@@ -335,6 +334,7 @@ class StretchApp:
             self.game_format.set(game if game in ("4:3", "16:9") else "Personalizado")
             self.output_format.set(output)
             self.ratio_label.set(f"Juego {game}  →  Pantalla {output}")
+            self.target_label.set(f"{sw}×{sh} ({game}) estirado a {ow}×{oh} ({output}) · {self.vars['hz'].get()} Hz")
             percent = round(abs(multiplier - 1) * 100)
             if percent < 2:
                 self.effect_label.set("Ambas imágenes tienen casi el mismo formato: apenas habrá estirado.")
@@ -345,6 +345,7 @@ class StretchApp:
         except (ValueError, ZeroDivisionError):
             self.ratio_label.set("Introduce números válidos para ver el formato.")
             self.effect_label.set("")
+            self.target_label.set("Revisa la resolución elegida.")
 
     def get_settings(self) -> Settings:
         settings = Settings(

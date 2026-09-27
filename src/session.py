@@ -82,8 +82,13 @@ class GameSession:
             if target is None:
                 raise RuntimeError("Windows no ofrece la resolución creada. Reinicia la aplicación.")
 
+            apply_mode(original)
             backup = prepare_config(settings.game_config, original.width, original.height)
             self.report(f"Configuración preparada. Copia de seguridad: {backup}")
+            shared_config = (Path(__import__("os").environ["LOCALAPPDATA"]) / "VALORANT" /
+                             "Saved" / "Config" / "WindowsClient" / "GameUserSettings.ini")
+            if shared_config.is_file() and shared_config != settings.game_config:
+                prepare_config(shared_config, original.width, original.height)
             self.report("Acepta el aviso de Windows para preparar el monitor.")
             lease.acquire()
             self.report("Monitor preparado. Abriendo VALORANT...")
