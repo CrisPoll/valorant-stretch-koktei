@@ -61,8 +61,8 @@ class StretchApp:
         self.vars = {
             "source_width": tk.StringVar(value=str(saved.get("source_width", 1200))),
             "source_height": tk.StringVar(value=str(saved.get("source_height", 900))),
-            "output_width": tk.StringVar(value=str(saved.get("output_width", 1600))),
-            "output_height": tk.StringVar(value=str(saved.get("output_height", 900))),
+            "output_width": tk.StringVar(value=str(saved.get("output_width", self.initial_mode.width))),
+            "output_height": tk.StringVar(value=str(saved.get("output_height", self.initial_mode.height))),
             "hz": tk.StringVar(value=str(saved.get("hz", self.initial_mode.frequency))),
             "client": tk.StringVar(value=saved.get("client", self.detect(find_client))),
             "game_config": tk.StringVar(value=saved.get("game_config", self.detect(find_game_config))),
@@ -140,7 +140,7 @@ class StretchApp:
         heading = ttk.Frame(resolution, style="Card.TFrame")
         heading.pack(fill="x", pady=(0, 9))
         ttk.Label(heading, text="Tu resolución", style="Section.TLabel").pack(side="left")
-        ttk.Button(heading, text="Modo probado: 4:3 estirado", command=self.use_verified_mode).pack(side="right")
+        ttk.Button(heading, text="4:3 con tu monitor", command=self.use_verified_mode).pack(side="right")
         settings_content = ttk.Frame(resolution, style="Card.TFrame")
         settings_content.pack(fill="x")
         form = ttk.Frame(settings_content, style="Card.TFrame")
@@ -237,10 +237,11 @@ class StretchApp:
 
     def use_verified_mode(self):
         for name, value in (("source_width", 1200), ("source_height", 900),
-                            ("output_width", 1600), ("output_height", 900),
-                            ("hz", 240)):
+                            ("output_width", self.initial_mode.width),
+                            ("output_height", self.initial_mode.height),
+                            ("hz", self.initial_mode.frequency)):
             self.vars[name].set(str(value))
-        self.post("Modo probado: 1200×900 → 1600×900 a 240 Hz.")
+        self.post(f"4:3 con salida nativa: 1200×900 → {mode_text(self.initial_mode)}.")
 
     def choose_game_format(self, *_):
         selected = self.game_format.get()

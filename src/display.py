@@ -72,16 +72,28 @@ def current_mode() -> DevMode:
     return mode
 
 
-def available_mode(width: int, height: int, hz: int) -> DevMode | None:
+def list_modes() -> list[DevMode]:
+    matches = []
     index = 0
     while True:
         mode = DevMode()
         mode.size = ctypes.sizeof(DevMode)
         if not enum_modes(None, index, ctypes.byref(mode)):
-            return None
-        if (mode.width, mode.height, mode.frequency, mode.bits_per_pel) == (width, height, hz, 32):
-            return mode
+            return matches
+        matches.append(mode)
         index += 1
+
+
+def modes_for_resolution(width: int, height: int) -> list[DevMode]:
+    return [mode for mode in list_modes()
+            if (mode.width, mode.height) == (width, height)]
+
+
+def available_mode(width: int, height: int, hz: int) -> DevMode | None:
+    candidates = [mode for mode in modes_for_resolution(width, height)
+                  if mode.bits_per_pel in (24, 32) and abs(mode.frequency - hz) <= 1]
+    return min(candidates, key=lambda mode: (abs(mode.frequency - hz),
+                                              mode.bits_per_pel != 32)) if candidates else None
 
 
 def apply_mode(mode: DevMode, stretch: bool = False) -> None:

@@ -6,7 +6,7 @@ from pathlib import Path
 import threading
 import time
 
-from display import apply_mode, available_mode, current_mode, mode_text
+from display import apply_mode, available_mode, current_mode, mode_text, modes_for_resolution
 from monitor import MonitorLease
 from nvapi import NvidiaApi
 from riot import GameFlowWatcher, game_running, launch_client, prepare_config
@@ -69,18 +69,46 @@ class GameSession:
         lease = MonitorLease(settings.monitor_id)
         stretched = False
         try:
-            self.report("Comprobando la resolución de NVIDIA...")
-            with NvidiaApi() as nvidia:
-                created = nvidia.ensure_mode(
-                    settings.source_width, settings.source_height,
-                    settings.output_width, settings.output_height, settings.hz,
-                    original.width, original.height,
-                )
-            if created:
-                self.report("Resolución personalizada creada y comprobada.")
             target = available_mode(settings.source_width, settings.source_height, settings.hz)
+            native_output = (settings.output_width, settings.output_height) == (
+                original.width, original.height
+            )
+            if target is not None and native_output:
+                self.report("Usando una resolución que Windows ya ofrece para este monitor.")
+            else:
+                self.report("Comprobando la resolución de NVIDIA...")
+                with NvidiaApi() as nvidia:
+                    created = nvidia.ensure_mode(
+                        settings.source_width, settings.source_height,
+                        settings.output_width, settings.output_height, settings.hz,
+                        original.width, original.height,
+                    )
+                if created:
+                    self.report("Resolución personalizada creada y comprobada.")
+                for _ in range(11):
+                    target = available_mode(settings.source_width, settings.source_height, settings.hz)
+                    if target is not None or self.stop_event.is_set():
+                        break
+                    time.sleep(0.5)
+            if self.stop_event.is_set():
+                self.report("Inicio cancelado.")
+                return
             if target is None:
-                raise RuntimeError("Windows no ofrece la resolución creada. Reinicia la aplicación.")
+                offered = sorted({mode.frequency for mode in modes_for_resolution(
+                    settings.source_width, settings.source_height)})
+                if offered:
+                    raise RuntimeError(
+                        f"Windows ofrece {settings.source_width}×{settings.source_height} "
+                        f"a {', '.join(map(str, offered))} Hz, pero elegiste {settings.hz} Hz. "
+                        "Usa una frecuencia disponible."
+                    )
+                raise RuntimeError(
+                    f"NVIDIA reconoce {settings.source_width}×{settings.source_height}, "
+                    "pero Windows no la ofrece en este monitor. "
+                    f"Prueba Pantalla {original.width}×{original.height} "
+                    f"a {original.frequency} Hz. Si NVIDIA indica que ya existe "
+                    "esa resolución del Juego con otra salida, prueba Juego 1280×960 (4:3)."
+                )
 
             apply_mode(original)
             backup = prepare_config(settings.game_config, original.width, original.height)
@@ -154,9 +182,9 @@ class GameSession:
                         time.sleep(0.2)
                     apply_mode(target, stretch=True)
                     actual = current_mode()
-                    if (actual.width, actual.height, actual.frequency) != (
-                        settings.source_width, settings.source_height, settings.hz
-                    ):
+                    if ((actual.width, actual.height) !=
+                            (settings.source_width, settings.source_height)
+                            or abs(actual.frequency - settings.hz) > 1):
                         raise RuntimeError("Windows no mantuvo la resolución elegida.")
                     stretched = True
                     self.report(

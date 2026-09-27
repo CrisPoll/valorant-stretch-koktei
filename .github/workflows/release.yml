@@ -27,4 +27,4 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           $version = $env:GITHUB_REF_NAME
-          gh release create $version "dist/ValorantStretchKoktei.exe#ValorantStretchKoktei-$version.exe" --title "VALORANT Stretch $version" --notes "Corrección del cambio entre partidas: restaura la resolución al volver al menú y aplica el estirado al cargar el siguiente mapa. F8 permite reaplicarlo manualmente."
+          gh release create $version "dist/ValorantStretchKoktei.exe#ValorantStretchKoktei-$version.exe" --title "VALORANT Stretch $version" --notes "Selector de resoluciones disponibles en Windows, valores iniciales adaptados al monitor y mensajes más claros si el controlador no ofrece una resolución personalizada. La app mantiene la pantalla normal entre partidas y estira al entrar al mapa."

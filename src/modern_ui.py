@@ -7,7 +7,7 @@ import tkinter as tk
 from tkinter import messagebox, scrolledtext, simpledialog, ttk
 
 from app import SETTINGS_FILE, StretchApp, format_ratio
-from display import current_mode, mode_text
+from display import current_mode, list_modes, mode_text
 
 
 BG = "#100F1B"
@@ -175,7 +175,10 @@ class ModernStretchApp(StretchApp):
         self.ratio_badge(fields, self.output_ratio)
         tk.Frame(fields, bg=LINE, width=1).pack(side="left", fill="y", padx=11)
         self.number_field(fields, "Hz", "hz", width=5)
-        self.label(values, variable=self.summary, color=MUTED, size=10).pack(anchor="center", pady=(10, 0))
+        chooser_row = tk.Frame(values, bg=CARD)
+        chooser_row.pack(fill="x", pady=(10, 0))
+        self.label(chooser_row, variable=self.summary, color=MUTED, size=10).pack(side="left")
+        self.button(chooser_row, "Ver resoluciones de Windows", self.show_available_modes).pack(side="right")
 
         controls = tk.Frame(page, bg=BG)
         controls.pack(fill="x", pady=(14, 0))
@@ -186,6 +189,96 @@ class ModernStretchApp(StretchApp):
         self.back_button = self.button(controls, "F9  Volver", self.unstretch, state="disabled")
         self.back_button.pack(side="left", padx=(9, 0))
         self.button(controls, "⟳  Restaurar", self.restore_all).pack(side="left", padx=(9, 0))
+
+    def show_available_modes(self):
+        modes = sorted({(mode.width, mode.height, mode.frequency)
+                        for mode in list_modes()
+                        if mode.bits_per_pel in (24, 32)
+                        and mode.width >= 640 and mode.height >= 480
+                        and mode.frequency >= 30}, reverse=True)
+        if not modes:
+            messagebox.showerror("Resoluciones de Windows",
+                                 "Windows no devolvió resoluciones para la pantalla principal.",
+                                 parent=self.root)
+            return
+
+        dialog = tk.Toplevel(self.root, bg=BG)
+        dialog.title("Resoluciones disponibles · VALORANT Stretch")
+        dialog.geometry("610x540")
+        dialog.minsize(500, 430)
+        dialog.transient(self.root)
+        dialog.grab_set()
+        body = tk.Frame(dialog, bg=BG, padx=22, pady=18)
+        body.pack(fill="both", expand=True)
+        self.label(body, "Resoluciones de la pantalla principal", size=17, bold=True).pack(anchor="w")
+        self.label(body, "Elige dónde usar la resolución. Juego es la imagen que se estira; "
+                         "Pantalla es la salida final del monitor.",
+                   color=MUTED, wraplength=550, justify="left").pack(anchor="w", pady=(7, 13))
+        target = tk.StringVar(value="output")
+        choice = tk.Frame(body, bg=BG)
+        choice.pack(fill="x", pady=(0, 12))
+        for value, label in (("game", "Usar para Juego"), ("output", "Usar para Pantalla")):
+            tk.Radiobutton(choice, text=label, variable=target, value=value, bg=BG,
+                           fg=TEXT, selectcolor=FIELD, activebackground=BG,
+                           activeforeground=TEXT, font=("Segoe UI", 10)).pack(side="left", padx=(0, 22))
+
+        search = tk.StringVar()
+        self.label(body, "Buscar por tamaño, formato o Hz", color=MUTED, size=9).pack(anchor="w")
+        tk.Entry(body, textvariable=search, bg=FIELD, fg=TEXT, insertbackground=TEXT,
+                 relief="flat", borderwidth=8, font=("Segoe UI", 10)).pack(fill="x", pady=(4, 10))
+
+        list_frame = tk.Frame(body, bg=FIELD, highlightthickness=1, highlightbackground=LINE)
+        list_frame.pack(fill="both", expand=True)
+        scrollbar = tk.Scrollbar(list_frame)
+        scrollbar.pack(side="right", fill="y")
+        listing = tk.Listbox(list_frame, bg=FIELD, fg=TEXT, selectbackground="#3D755F",
+                             selectforeground=TEXT, relief="flat", borderwidth=10,
+                             font=("Consolas", 11), yscrollcommand=scrollbar.set)
+        listing.pack(side="left", fill="both", expand=True)
+        scrollbar.configure(command=listing.yview)
+        visible_modes = []
+        native = (self.initial_mode.width, self.initial_mode.height,
+                  self.initial_mode.frequency)
+
+        def refresh_list(*_):
+            query = search.get().strip().lower()
+            visible_modes.clear()
+            listing.delete(0, "end")
+            for width, height, hz in modes:
+                ratio = format_ratio(width, height)
+                haystack = f"{width}x{height} {width}×{height} {ratio} {hz}"
+                if query and query not in haystack.lower():
+                    continue
+                visible_modes.append((width, height, hz))
+                listing.insert("end", f"{width:>4} × {height:<4}    {ratio:<13}    {hz} Hz")
+            if native in visible_modes:
+                index = visible_modes.index(native)
+                listing.selection_set(index)
+                listing.see(index)
+
+        search.trace_add("write", refresh_list)
+        refresh_list()
+        self.label(body, "Las resoluciones personalizadas también se pueden escribir en el Simulador.",
+                   color=MUTED, size=9).pack(anchor="w", pady=(12, 10))
+
+        def apply_choice(_event=None):
+            selected = listing.curselection()
+            if not selected:
+                return
+            width, height, hz = visible_modes[selected[0]]
+            prefix = "source" if target.get() == "game" else "output"
+            self.vars[f"{prefix}_width"].set(str(width))
+            self.vars[f"{prefix}_height"].set(str(height))
+            self.vars["hz"].set(str(hz))
+            self.post(f"Resolución de Windows elegida para {'Juego' if prefix == 'source' else 'Pantalla'}: "
+                      f"{width}×{height} · {hz} Hz.")
+            dialog.destroy()
+
+        listing.bind("<Double-Button-1>", apply_choice)
+        actions = tk.Frame(body, bg=BG)
+        actions.pack(fill="x")
+        self.button(actions, "Usar selección", apply_choice, primary=True).pack(side="right")
+        self.button(actions, "Cancelar", dialog.destroy).pack(side="right", padx=(0, 8))
 
     def number_field(self, parent, title, key, width=6):
         column = tk.Frame(parent, bg=CARD)
@@ -305,7 +398,7 @@ class ModernStretchApp(StretchApp):
                    color=MUTED).pack(anchor="w", pady=(5, 20))
         card = self.panel(page)
         card.pack(fill="x")
-        self.label(card, "Modo probado · 1200×900 → 1600×900 · 240 Hz",
+        self.label(card, f"4:3 con tu monitor · 1200×900 → {mode_text(self.initial_mode)}",
                    size=12, bold=True).pack(side="left")
         self.button(card, "Aplicar", self.apply_verified_profile).pack(side="right")
         self.profile_list = tk.Listbox(page, bg=FIELD, fg=TEXT, selectbackground="#3D755F",
