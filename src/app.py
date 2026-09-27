@@ -34,6 +34,7 @@ class StretchApp:
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
         self.initial_mode = current_mode()
         self.events = queue.Queue()
+        self.history = []
         self.session = None
         self.worker = None
         self.monitors = []
