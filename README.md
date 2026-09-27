@@ -8,7 +8,7 @@
 2. Escribe la **imagen del juego**, la **salida de vídeo** y los **Hz** que quieras. La app empieza con el modo comprobado `1200×900 → 1600×900 @ 240 Hz`.
 3. Pulsa **Abrir VALORANT** y acepta el aviso de Windows para preparar temporalmente el monitor.
 4. Entra al campo de tiro o a una partida. Cuando puedas moverte, pulsa **F8** o el botón **Estirar**.
-5. **F9** vuelve al escritorio original. Al cerrar VALORANT, la app restaura automáticamente la pantalla y el monitor.
+5. Si aparecen bordes negros después de Alt+Tab o al entrar en otra partida, pulsa **F8** de nuevo para reaplicar el estirado. **F9** vuelve al escritorio original. Al cerrar VALORANT, la app restaura automáticamente la pantalla y el monitor.
 
 Para ensanchar la imagen, el formato de **Pantalla** debe ser más ancho que el de **Juego**. Por ejemplo, `1200×900` es 4:3 y `1600×900` es 16:9; el ancho relativo aumenta `1,33×`. Poner `1600×900` en ambos campos mantiene las proporciones normales.
 

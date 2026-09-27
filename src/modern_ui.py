@@ -377,7 +377,7 @@ class ModernStretchApp(StretchApp):
         self.label(page, "Teclas rápidas", size=22, bold=True).pack(anchor="w")
         self.label(page, "Usa estas teclas cuando ya estés dentro de una partida.",
                    color=MUTED).pack(anchor="w", pady=(5, 20))
-        for key, title, detail in (("F8", "Estirar", "Cambia a la resolución personalizada."),
+        for key, title, detail in (("F8", "Estirar", "Aplica de nuevo el estirado si reaparecen bordes negros tras Alt+Tab o al cambiar de partida."),
                                    ("F9", "Volver", "Regresa a la resolución anterior.")):
             card = self.panel(page)
             card.pack(fill="x", pady=(0, 12))

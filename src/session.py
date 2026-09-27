@@ -121,23 +121,25 @@ class GameSession:
                 self.toggle_event.clear()
                 self.restore_event.clear()
                 if toggle:
+                    # VALORANT may rebuild its viewport after Alt+Tab or between
+                    # matches while Windows still reports the custom mode. Cycle
+                    # through the desktop mode so the game receives a new display
+                    # change even when F8 was already used in this session.
                     if stretched:
                         apply_mode(original)
-                        stretched = False
-                        self.report(f"Restaurado: {mode_text(original)}")
-                    else:
-                        apply_mode(target, stretch=True)
-                        actual = current_mode()
-                        if (actual.width, actual.height, actual.frequency) != (
-                            settings.source_width, settings.source_height, settings.hz
-                        ):
-                            raise RuntimeError("Windows no mantuvo la resolución elegida.")
-                        stretched = True
-                        self.report(
-                            f"Estirado: {settings.source_width}×{settings.source_height} "
-                            f"→ salida {settings.output_width}×{settings.output_height} "
-                            f"a {settings.hz} Hz"
-                        )
+                        time.sleep(0.2)
+                    apply_mode(target, stretch=True)
+                    actual = current_mode()
+                    if (actual.width, actual.height, actual.frequency) != (
+                        settings.source_width, settings.source_height, settings.hz
+                    ):
+                        raise RuntimeError("Windows no mantuvo la resolución elegida.")
+                    stretched = True
+                    self.report(
+                        f"Estirado aplicado: {settings.source_width}×{settings.source_height} "
+                        f"→ salida {settings.output_width}×{settings.output_height} "
+                        f"a {settings.hz} Hz. Puedes repetir F8 si reaparecen bordes negros."
+                    )
                 if restore and stretched:
                     apply_mode(original)
                     stretched = False
