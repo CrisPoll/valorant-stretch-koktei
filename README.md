@@ -7,8 +7,8 @@
 1. Descarga `ValorantStretchKoktei.exe` y ejecútalo.
 2. Escribe la **imagen del juego**, la **salida de vídeo** y los **Hz** que quieras. La app empieza con el modo comprobado `1200×900 → 1600×900 @ 240 Hz`.
 3. Pulsa **Abrir VALORANT** y acepta el aviso de Windows para preparar temporalmente el monitor.
-4. Entra al campo de tiro o a una partida. La app detecta cuándo el mapa termina de cargar y aplica el estirado automáticamente. **F8** permite reaplicarlo manualmente si hace falta.
-5. Al terminar la partida, la app vuelve a la resolución normal antes de la siguiente selección de agente. Vuelve a estirar cuando cargue la nueva partida. **F9** restaura el escritorio manualmente. Al cerrar VALORANT, la app restaura la pantalla y el monitor.
+4. Entra al campo de tiro o a una partida. La app detecta cuándo el mapa termina de cargar y aplica el estirado automáticamente. **F8** permite reaplicarlo manualmente una vez dentro del mapa; en el lobby se ignora para evitar franjas negras.
+5. Al terminar una partida o empezar la carga de la siguiente, la app vuelve a la resolución normal. Vuelve a estirar cuando cargue el nuevo mapa. **F9** restaura el escritorio manualmente. Al cerrar VALORANT, la app restaura la pantalla y el monitor.
 
 Para ensanchar la imagen, el formato de **Pantalla** debe ser más ancho que el de **Juego**. Por ejemplo, `1200×900` es 4:3 y `1600×900` es 16:9; el ancho relativo aumenta `1,33×`. Poner `1600×900` en ambos campos mantiene las proporciones normales.
 

@@ -110,6 +110,7 @@ class GameSession:
             next_process_check = 0.0
             next_flow_check = 0.0
             stretch_at = None
+            game_state = None
             flow = GameFlowWatcher()
             while not self.stop_event.is_set():
                 now = time.monotonic()
@@ -120,21 +121,25 @@ class GameSession:
                     next_process_check = now + 2
                 if now >= next_flow_check:
                     for state in flow.poll():
-                        if state in ("TransitionToMainMenu", "MainMenu", "TransitionToPregame", "Pregame"):
+                        game_state = state
+                        if state in ("TransitionToMainMenu", "MainMenu", "TransitionToPregame",
+                                     "Pregame", "TransitionToInGame"):
                             stretch_at = None
                             if stretched:
                                 apply_mode(original)
                                 stretched = False
-                                self.report("Pantalla normal entre partidas. El estirado volverá al entrar al juego.")
+                                self.report("Pantalla normal durante el lobby y la carga. Se estirará al entrar al mapa.")
                         elif state == "InGame":
                             stretch_at = now + 3
                             self.report("Partida cargada. Aplicando estirado en unos segundos...")
                     next_flow_check = now + 0.5
                 f8 = key_down(0x77)
                 f9 = key_down(0x78)
-                toggle = (f8 and not was_f8) or self.toggle_event.is_set() or (
-                    stretch_at is not None and now >= stretch_at
-                )
+                manual_stretch = (f8 and not was_f8) or self.toggle_event.is_set()
+                if manual_stretch and game_state != "InGame":
+                    self.report("Espera a estar dentro de la partida: F8 en el lobby provoca franjas negras.")
+                    manual_stretch = False
+                toggle = manual_stretch or (stretch_at is not None and now >= stretch_at)
                 restore = (f9 and not was_f9) or self.restore_event.is_set()
                 self.toggle_event.clear()
                 self.restore_event.clear()

@@ -375,7 +375,7 @@ class ModernStretchApp(StretchApp):
         page = tk.Frame(self.content, bg=BG, padx=30, pady=25)
         self.pages["hotkeys"] = page
         self.label(page, "Teclas rápidas", size=22, bold=True).pack(anchor="w")
-        self.label(page, "La app vuelve a resolución normal entre partidas y estira al cargar la siguiente.",
+        self.label(page, "La app usa resolución normal en el lobby y durante la carga; estira al entrar al mapa.",
                    color=MUTED).pack(anchor="w", pady=(5, 20))
         for key, title, detail in (("F8", "Estirar", "Reaplica el estirado manualmente si reaparecen bordes negros dentro de la partida."),
                                    ("F9", "Volver", "Regresa a la resolución anterior.")):
