@@ -15,20 +15,30 @@ from session import GameSession, Settings
 
 
 SETTINGS_FILE = Path(os.environ["LOCALAPPDATA"]) / "KokteiValorantStretch" / "settings.json"
+BG = "#0B1020"
+CARD = "#172034"
+FIELD = "#10192B"
+LINE = "#2B3850"
+TEXT = "#F5F7FC"
+MUTED = "#AEBBD0"
+ACCENT = "#5BE1E8"
 
 
 class StretchApp:
     def __init__(self, root: tk.Tk):
         self.root = root
         self.root.title("VALORANT Stretch · koktei")
-        self.root.geometry("690x670")
-        self.root.minsize(640, 620)
+        self.root.geometry("850x640")
+        self.root.minsize(760, 590)
+        self.root.configure(bg=BG)
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
         self.initial_mode = current_mode()
         self.events = queue.Queue()
         self.session = None
         self.worker = None
         self.monitors = []
+        self.advanced_open = False
+        self.details_open = False
 
         saved = self.load_settings()
         self.vars = {
@@ -42,14 +52,15 @@ class StretchApp:
             "monitor_id": tk.StringVar(value=saved.get("monitor_id", "")),
         }
         self.monitor_label = tk.StringVar()
+        self.monitor_summary = tk.StringVar(value="Buscando monitor...")
         self.ratio_label = tk.StringVar()
-        self.status_label = tk.StringVar(value="Listo")
+        self.status_label = tk.StringVar(value="Listo para jugar")
         self.build_ui()
         self.refresh_monitors()
         for name in ("source_width", "source_height", "output_width", "output_height"):
             self.vars[name].trace_add("write", lambda *_: self.update_ratio())
         self.update_ratio()
-        self.post(f"Pantalla actual: {mode_text(self.initial_mode)}")
+        self.history.append(f"Pantalla actual: {mode_text(self.initial_mode)}")
         self.root.after(100, self.process_events)
 
     @staticmethod
@@ -72,69 +83,147 @@ class StretchApp:
         SETTINGS_FILE.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
 
     def build_ui(self) -> None:
-        frame = ttk.Frame(self.root, padding=18)
+        style = ttk.Style()
+        style.theme_use("clam")
+        style.configure("TFrame", background=BG)
+        style.configure("Card.TFrame", background=CARD)
+        style.configure("TLabel", background=BG, foreground=TEXT, font=("Segoe UI", 10))
+        style.configure("Card.TLabel", background=CARD, foreground=TEXT, font=("Segoe UI", 10))
+        style.configure("Muted.TLabel", background=CARD, foreground=MUTED, font=("Segoe UI", 9))
+        style.configure("Title.TLabel", background=BG, foreground=TEXT, font=("Segoe UI", 24, "bold"))
+        style.configure("Section.TLabel", background=CARD, foreground=TEXT, font=("Segoe UI", 13, "bold"))
+        style.configure("Accent.TLabel", background=CARD, foreground=ACCENT, font=("Segoe UI", 10, "bold"))
+        style.configure("TEntry", fieldbackground=FIELD, foreground=TEXT, padding=6,
+                        bordercolor=LINE, lightcolor=LINE, darkcolor=LINE)
+        style.configure("TCombobox", fieldbackground=FIELD, background=FIELD,
+                        foreground=TEXT, arrowcolor=TEXT, padding=5)
+        style.map("TCombobox", fieldbackground=[("readonly", FIELD)], foreground=[("readonly", TEXT)])
+        style.configure("TButton", background=LINE, foreground=TEXT,
+                        font=("Segoe UI", 10), padding=(12, 8), borderwidth=0)
+        style.map("TButton", background=[("active", "#40516D")])
+        style.configure("Primary.TButton", background=ACCENT, foreground=BG,
+                        font=("Segoe UI", 11, "bold"), padding=(17, 10), borderwidth=0)
+        style.map("Primary.TButton", background=[("active", "#9AF2F4")])
+
+        frame = ttk.Frame(self.root, padding=(22, 17))
         frame.pack(fill="both", expand=True)
-        ttk.Label(frame, text="VALORANT Stretch", font=("Segoe UI", 20, "bold")).pack(anchor="w")
-        ttk.Label(frame, text="Resolución personalizada para NVIDIA · Desarrollado por koktei",
-                  font=("Segoe UI", 10)).pack(anchor="w", pady=(0, 14))
+        ttk.Label(frame, text="VALORANT Stretch", style="Title.TLabel").pack(anchor="w")
+        ttk.Label(frame, text="Resoluciones estiradas personalizadas · Desarrollado por koktei",
+                  foreground=MUTED).pack(anchor="w", pady=(0, 16))
 
-        resolution = ttk.LabelFrame(frame, text="Resolución", padding=12)
+        resolution = ttk.Frame(frame, style="Card.TFrame", padding=16)
         resolution.pack(fill="x")
-        row1 = ttk.Frame(resolution)
-        row1.pack(fill="x", pady=3)
-        ttk.Label(row1, text="Imagen del juego", width=19).pack(side="left")
-        self.entry(row1, "source_width")
-        ttk.Label(row1, text="×").pack(side="left", padx=5)
-        self.entry(row1, "source_height")
-        ttk.Label(row1, text="píxeles").pack(side="left", padx=8)
-        row2 = ttk.Frame(resolution)
-        row2.pack(fill="x", pady=3)
-        ttk.Label(row2, text="Salida de vídeo", width=19).pack(side="left")
-        self.entry(row2, "output_width")
-        ttk.Label(row2, text="×").pack(side="left", padx=5)
-        self.entry(row2, "output_height")
-        ttk.Label(row2, text="píxeles").pack(side="left", padx=8)
-        row3 = ttk.Frame(resolution)
-        row3.pack(fill="x", pady=3)
-        ttk.Label(row3, text="Frecuencia", width=19).pack(side="left")
-        self.entry(row3, "hz")
-        ttk.Label(row3, text="Hz").pack(side="left", padx=8)
-        ttk.Label(resolution, textvariable=self.ratio_label).pack(anchor="w", pady=(8, 0))
+        heading = ttk.Frame(resolution, style="Card.TFrame")
+        heading.pack(fill="x", pady=(0, 9))
+        ttk.Label(heading, text="Tu resolución", style="Section.TLabel").pack(side="left")
+        ttk.Button(heading, text="Usar modo probado", command=self.use_verified_mode).pack(side="right")
+        for title, width, height in (
+            ("Imagen del juego", "source_width", "source_height"),
+            ("Salida del monitor", "output_width", "output_height"),
+        ):
+            row = ttk.Frame(resolution, style="Card.TFrame")
+            row.pack(fill="x", pady=3)
+            ttk.Label(row, text=title, style="Card.TLabel", width=21).pack(side="left")
+            self.entry(row, width)
+            ttk.Label(row, text="×", style="Card.TLabel").pack(side="left", padx=8)
+            self.entry(row, height)
+            ttk.Label(row, text="píxeles", style="Muted.TLabel").pack(side="left", padx=10)
+        row = ttk.Frame(resolution, style="Card.TFrame")
+        row.pack(fill="x", pady=(4, 0))
+        ttk.Label(row, text="Frecuencia", style="Card.TLabel", width=21).pack(side="left")
+        self.entry(row, "hz")
+        ttk.Label(row, text="Hz", style="Muted.TLabel").pack(side="left", padx=10)
+        ttk.Label(resolution, textvariable=self.ratio_label, style="Accent.TLabel").pack(anchor="w", pady=(10, 0))
+        ttk.Label(resolution, text="La primera resolución se renderiza; la segunda es la señal que recibe el monitor.",
+                  style="Muted.TLabel").pack(anchor="w", pady=(5, 0))
 
-        options = ttk.LabelFrame(frame, text="Juego y monitor", padding=12)
-        options.pack(fill="x", pady=(12, 0))
-        row4 = ttk.Frame(options)
+        flow = ttk.Frame(frame, style="Card.TFrame", padding=16)
+        flow.pack(fill="x", pady=(12, 0))
+        ttk.Label(flow, text="Cómo jugar", style="Section.TLabel").pack(anchor="w")
+        ttk.Label(flow, text="1  Abre VALORANT    →    2  Entra a una partida    →    3  Pulsa F8 para estirar",
+                  style="Muted.TLabel").pack(anchor="w", pady=(7, 13))
+        controls = ttk.Frame(flow, style="Card.TFrame")
+        controls.pack(fill="x")
+        self.play_button = ttk.Button(controls, text="▶  Abrir VALORANT", style="Primary.TButton", command=self.start)
+        self.play_button.pack(side="left")
+        self.stretch_button = ttk.Button(controls, text="Estirar · F8", command=self.toggle, state="disabled")
+        self.stretch_button.pack(side="left", padx=(9, 0))
+        self.back_button = ttk.Button(controls, text="Volver · F9", command=self.unstretch, state="disabled")
+        self.back_button.pack(side="left", padx=(9, 0))
+        ttk.Button(controls, text="Restaurar", command=self.restore_all).pack(side="right")
+
+        status = ttk.Frame(frame, style="Card.TFrame", padding=(14, 10))
+        status.pack(fill="x", pady=(12, 0))
+        ttk.Label(status, text="●", style="Accent.TLabel").pack(side="left", padx=(0, 9))
+        ttk.Label(status, textvariable=self.status_label, style="Card.TLabel").pack(side="left")
+
+        footer = ttk.Frame(frame)
+        footer.pack(fill="x", pady=(12, 0))
+        ttk.Label(footer, textvariable=self.monitor_summary,
+                  foreground=MUTED).pack(side="left")
+        ttk.Button(footer, text="Detalles", command=self.toggle_details).pack(side="right")
+        ttk.Button(footer, text="Configuración avanzada", command=self.toggle_advanced).pack(side="right", padx=(0, 8))
+
+        self.advanced = ttk.Frame(frame, style="Card.TFrame", padding=12)
+        row4 = ttk.Frame(self.advanced, style="Card.TFrame")
         row4.pack(fill="x", pady=3)
-        ttk.Label(row4, text="Monitor", width=15).pack(side="left")
+        ttk.Label(row4, text="Monitor", style="Card.TLabel", width=18).pack(side="left")
         self.monitor_box = ttk.Combobox(row4, textvariable=self.monitor_label, state="readonly")
         self.monitor_box.pack(side="left", fill="x", expand=True)
         self.monitor_box.bind("<<ComboboxSelected>>", self.on_monitor_selected)
         ttk.Button(row4, text="Actualizar", command=self.refresh_monitors).pack(side="left", padx=(6, 0))
-        self.path_row(options, "Riot Client", "client", self.browse_client)
-        self.path_row(options, "Archivo VALORANT", "game_config", self.browse_config)
+        self.path_row(self.advanced, "Riot Client", "client", self.browse_client)
+        self.path_row(self.advanced, "Archivo VALORANT", "game_config", self.browse_config)
 
-        controls = ttk.Frame(frame)
-        controls.pack(fill="x", pady=14)
-        self.play_button = ttk.Button(controls, text="Jugar", command=self.start)
-        self.play_button.pack(side="left")
-        ttk.Button(controls, text="Estirar / F8", command=self.toggle).pack(side="left", padx=7)
-        ttk.Button(controls, text="Volver / F9", command=self.unstretch).pack(side="left")
-        ttk.Button(controls, text="Restaurar todo", command=self.restore_all).pack(side="right")
-        ttk.Label(frame, textvariable=self.status_label).pack(anchor="w")
-        self.log = scrolledtext.ScrolledText(frame, height=10, state="disabled", wrap="word")
-        self.log.pack(fill="both", expand=True, pady=(6, 0))
-        ttk.Label(frame, text="F8: estirar dentro de la partida · F9: volver · Al cerrar el juego se restaura la pantalla.",
-                  font=("Segoe UI", 9)).pack(anchor="w", pady=(8, 0))
+        self.log = scrolledtext.ScrolledText(frame, height=7, state="disabled", wrap="word",
+                                              bg=FIELD, fg=TEXT, relief="flat",
+                                              font=("Consolas", 9))
 
     def entry(self, parent, name):
         ttk.Entry(parent, textvariable=self.vars[name], width=9).pack(side="left")
 
     def path_row(self, parent, label, name, browse):
-        row = ttk.Frame(parent)
+        row = ttk.Frame(parent, style="Card.TFrame")
         row.pack(fill="x", pady=3)
-        ttk.Label(row, text=label, width=15).pack(side="left")
+        ttk.Label(row, text=label, style="Card.TLabel", width=18).pack(side="left")
         ttk.Entry(row, textvariable=self.vars[name]).pack(side="left", fill="x", expand=True)
         ttk.Button(row, text="Elegir", command=browse).pack(side="left", padx=(6, 0))
+
+    def use_verified_mode(self):
+        for name, value in (("source_width", 1200), ("source_height", 900),
+                            ("output_width", 1600), ("output_height", 900),
+                            ("hz", 240)):
+            self.vars[name].set(str(value))
+        self.post("Modo probado: 1200×900 → 1600×900 a 240 Hz.")
+
+    def toggle_advanced(self):
+        if self.advanced_open:
+            self.advanced.pack_forget()
+            self.advanced_open = False
+        else:
+            if self.details_open:
+                self.log.pack_forget()
+                self.details_open = False
+            self.advanced.pack(fill="x", pady=(8, 0))
+            self.advanced_open = True
+        self.resize_for_panel()
+
+    def toggle_details(self):
+        if self.details_open:
+            self.log.pack_forget()
+            self.details_open = False
+        else:
+            if self.advanced_open:
+                self.advanced.pack_forget()
+                self.advanced_open = False
+            self.log.pack(fill="both", expand=True, pady=(8, 0))
+            self.details_open = True
+        self.resize_for_panel()
+
+    def resize_for_panel(self):
+        width = max(self.root.winfo_width(), 760)
+        height = 780 if self.advanced_open or self.details_open else 640
+        self.root.geometry(f"{width}x{height}")
 
     def browse_client(self):
         chosen = filedialog.askopenfilename(title="Selecciona RiotClientServices.exe",
@@ -162,13 +251,19 @@ class StretchApp:
             if index is not None:
                 self.monitor_box.current(index)
                 self.on_monitor_selected()
+            else:
+                self.monitor_summary.set("No se encontró un monitor activo")
         except Exception as error:
             self.post(f"No se pudieron detectar monitores: {error}")
 
     def on_monitor_selected(self, *_):
         index = self.monitor_box.current()
         if index >= 0:
-            self.vars["monitor_id"].set(self.monitors[index]["InstanceId"])
+            monitor = self.monitors[index]
+            self.vars["monitor_id"].set(monitor["InstanceId"])
+            self.monitor_summary.set(
+                f"Monitor: {monitor['FriendlyName']} · {mode_text(current_mode())}"
+            )
 
     def update_ratio(self):
         try:
@@ -178,8 +273,8 @@ class StretchApp:
             oh = int(self.vars["output_height"].get())
             multiplier = (ow / sw) / (oh / sh)
             self.ratio_label.set(
-                f"Proporción: {sw / sh:.3f} → {ow / oh:.3f}  ·  "
-                f"ancho relativo: {multiplier:.2f}×"
+                f"Juego {sw / sh:.2f}:1 → salida {ow / oh:.2f}:1  ·  "
+                f"ancho relativo de personajes: {multiplier:.2f}×"
             )
         except (ValueError, ZeroDivisionError):
             self.ratio_label.set("Introduce números válidos para ver el estirado.")
@@ -271,6 +366,9 @@ class StretchApp:
                 elif kind == "done":
                     self.play_button.configure(state="normal")
                     self.status_label.set(message)
+                active = bool(self.session and self.session.running)
+                self.stretch_button.configure(state="normal" if active else "disabled")
+                self.back_button.configure(state="normal" if active else "disabled")
         except queue.Empty:
             pass
         self.root.after(100, self.process_events)

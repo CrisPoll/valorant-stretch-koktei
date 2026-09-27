@@ -6,7 +6,7 @@
 
 1. Descarga `ValorantStretchKoktei.exe` y ejecútalo.
 2. Escribe la **imagen del juego**, la **salida de vídeo** y los **Hz** que quieras. La app empieza con el modo comprobado `1200×900 → 1600×900 @ 240 Hz`.
-3. Pulsa **Jugar** y acepta el aviso de Windows para preparar temporalmente el monitor.
+3. Pulsa **Abrir VALORANT** y acepta el aviso de Windows para preparar temporalmente el monitor.
 4. Entra al campo de tiro o a una partida. Cuando puedas moverte, pulsa **F8** o el botón **Estirar**.
 5. **F9** vuelve al escritorio original. Al cerrar VALORANT, la app restaura automáticamente la pantalla y el monitor.
 
@@ -21,7 +21,7 @@ La aplicación acepta valores personalizados, pero el monitor y el controlador d
 - VALORANT instalado y abierto al menos una vez.
 - Permiso de administrador para desactivar temporalmente el dispositivo del monitor. La aplicación solicita ese permiso solo al preparar el monitor.
 
-La app detecta Riot Client, `GameUserSettings.ini` y el monitor activo. Puedes cambiar las rutas y el monitor en la ventana. Se guarda una copia del archivo de configuración en `%LOCALAPPDATA%\KokteiValorantStretch\backups` antes de modificar sus ajustes de vídeo. No se inyecta código en el juego ni se modifica Vanguard.
+La app detecta Riot Client, `GameUserSettings.ini` y el monitor activo. Si hace falta, puedes cambiar las rutas y el monitor desde **Configuración avanzada**. **Detalles** muestra la actividad y los errores. El botón **Usar modo probado** recupera `1200×900 → 1600×900 @ 240 Hz`. Se guarda una copia del archivo de configuración en `%LOCALAPPDATA%\KokteiValorantStretch\backups` antes de modificar sus ajustes de vídeo. No se inyecta código en el juego ni se modifica Vanguard.
 
 ## Restauración
 
