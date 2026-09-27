@@ -30,12 +30,12 @@ def self_test(path: Path) -> None:
                 for mode in nvidia.custom_modes(identifier)
             ]
         import tkinter as tk
-        from app import StretchApp
+        from modern_ui import ModernStretchApp
 
         root = tk.Tk()
         root.withdraw()
         try:
-            app = StretchApp(root)
+            app = ModernStretchApp(root)
             root.update_idletasks()
             result["gui_ok"] = bool(app.play_button.winfo_exists())
         finally:
@@ -53,5 +53,5 @@ if __name__ == "__main__":
     if len(sys.argv) == 3 and sys.argv[1] == "--self-test":
         self_test(Path(sys.argv[2]))
     else:
-        from app import main
+        from modern_ui import main
         main()
